@@ -157,14 +157,15 @@ List workers
         workername = self.get_argument('workername', default=None)
 
         if status:
-            info = {}
-            for name, worker in self.application.events.state.workers.items():
-                info[name] = worker.alive
+            info = {
+                name: worker.alive
+                for name, worker in self.application.events.state.workers.items()
+            }
             self.write(info)
             return
 
         if self.application.workers and not refresh and\
-                workername in self.application.workers:
+                    workername in self.application.workers:
             self.write({workername: self.application.workers[workername]})
             return
 
@@ -172,12 +173,12 @@ List workers
             try:
                 yield self.application.update_workers(workername=workername)
             except Exception as e:
-                msg = "Failed to update workers: %s" % e
+                msg = f"Failed to update workers: {e}"
                 logger.error(msg)
                 raise web.HTTPError(503, msg)
 
         if workername and not self.is_worker(workername):
-            raise web.HTTPError(404, "Unknown worker '%s'" % workername)
+            raise web.HTTPError(404, f"Unknown worker '{workername}'")
 
         if workername:
             self.write({workername: self.application.workers[workername]})

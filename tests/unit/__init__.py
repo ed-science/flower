@@ -24,9 +24,13 @@ class AsyncHTTPTestCase(tornado.testing.AsyncHTTPTestCase):
         if not capp:
             capp = self._get_celery_app()
         events = Events(capp)
-        app = Flower(capp=capp, events=events,
-                     options=options, handlers=handlers, **settings)
-        return app
+        return Flower(
+            capp=capp,
+            events=events,
+            options=options,
+            handlers=handlers,
+            **settings
+        )
 
     def get(self, url, **kwargs):
         return self.fetch(url, **kwargs)

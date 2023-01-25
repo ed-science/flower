@@ -133,7 +133,7 @@ Execute a task by name and wait results
         try:
             task = self.capp.tasks[taskname]
         except KeyError:
-            raise HTTPError(404, "Unknown task '%s'" % taskname)
+            raise HTTPError(404, f"Unknown task '{taskname}'")
 
         try:
             self.normalize_options(options)
@@ -208,7 +208,7 @@ Execute a task
         try:
             task = self.capp.tasks[taskname]
         except KeyError:
-            raise HTTPError(404, "Unknown task '%s'" % taskname)
+            raise HTTPError(404, f"Unknown task '{taskname}'")
 
         try:
             self.normalize_options(options)
@@ -361,7 +361,7 @@ Abort a running task
 
         result.abort()
 
-        self.write(dict(message="Aborted '%s'" % taskid))
+        self.write(dict(message=f"Aborted '{taskid}'"))
 
 
 class GetQueueLengths(BaseTaskHandler):
@@ -405,18 +405,16 @@ Return length of all active queues
         if app.transport == 'amqp' and app.options.broker_api:
             http_api = app.options.broker_api
 
-        broker_use_ssl = None
-        if self.capp.conf.BROKER_USE_SSL:
-            broker_use_ssl = self.capp.conf.BROKER_USE_SSL
-
+        broker_use_ssl = self.capp.conf.BROKER_USE_SSL or None
         broker = Broker(app.capp.connection().as_uri(include_password=True),
                         http_api=http_api, broker_options=broker_options, broker_use_ssl=broker_use_ssl)
 
         queue_names = self.get_active_queue_names()
 
         if not queue_names:
-            queue_names = set([self.capp.conf.CELERY_DEFAULT_QUEUE]) |\
-                set([q.name for q in self.capp.conf.CELERY_QUEUES or [] if q.name])
+            queue_names = {self.capp.conf.CELERY_DEFAULT_QUEUE} | {
+                q.name for q in self.capp.conf.CELERY_QUEUES or [] if q.name
+            }
 
         queues = yield broker.queues(sorted(queue_names))
         self.write({'active_queues': queues})
@@ -579,8 +577,7 @@ List (seen) task types
         """
         seen_task_types = self.application.events.state.task_types()
 
-        response = {}
-        response['task-types'] = seen_task_types
+        response = {'task-types': seen_task_types}
         self.write(response)
 
 
@@ -644,7 +641,7 @@ Get a task info
 
         task = tasks.get_task_by_id(self.application.events, taskid)
         if not task:
-            raise HTTPError(404, "Unknown task '%s'" % taskid)
+            raise HTTPError(404, f"Unknown task '{taskid}'")
 
         response = task.as_dict()
         if task.worker is not None:

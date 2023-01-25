@@ -261,11 +261,11 @@ class DashboardTests(AsyncHTTPTestCase):
         state.get_or_create_worker('worker3')
         events = [Event('worker-online', hostname='worker1'),
                   Event('worker-online', hostname='worker2')]
-        for i in range(100):
+        for _ in range(100):
             events += task_succeeded_events(worker='worker1')
-        for i in range(10):
+        for _ in range(10):
             events += task_succeeded_events(worker='worker3')
-        for i in range(13):
+        for _ in range(13):
             events += task_failed_events(worker='worker3')
         for i, e in enumerate(events):
             e['clock'] = i

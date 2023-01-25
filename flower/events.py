@@ -87,8 +87,7 @@ class EventsState(State):
                 task_name = task.name or ''
             self.metrics.events.labels(worker_name, event_type, task_name).inc()
 
-            runtime = event.get('runtime', 0)
-            if runtime:
+            if runtime := event.get('runtime', 0):
                 self.metrics.runtime.labels(worker_name, task_name).observe(runtime)
 
             task_started = task.started

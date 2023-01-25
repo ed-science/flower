@@ -31,9 +31,13 @@ if sys.version_info[0]==3 and sys.version_info[1] >= 8 and sys.platform.startswi
 
 def rewrite_handler(handler, url_prefix):
     if type(handler) is url:
-        return url("/{}{}".format(url_prefix.strip("/"), handler.regex.pattern),
-                handler.handler_class, handler.kwargs, handler.name)
-    return ("/{}{}".format(url_prefix.strip("/"), handler[0]), handler[1])
+        return url(
+            f'/{url_prefix.strip("/")}{handler.regex.pattern}',
+            handler.handler_class,
+            handler.kwargs,
+            handler.name,
+        )
+    return f'/{url_prefix.strip("/")}{handler[0]}', handler[1]
 
 
 class Flower(tornado.web.Application):
@@ -49,7 +53,7 @@ class Flower(tornado.web.Application):
         super(Flower, self).__init__(**kwargs)
         self.options = options or default_options
         self.io_loop = io_loop or ioloop.IOLoop.instance()
-        self.ssl_options = kwargs.get('ssl_options', None)
+        self.ssl_options = kwargs.get('ssl_options')
 
         self.capp = capp or celery.Celery()
         self.capp.loader.import_default_modules()

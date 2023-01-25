@@ -13,14 +13,12 @@ def get_package_version():
     base = os.path.abspath(os.path.dirname(__file__))
     with open(os.path.join(base, "flower/__init__.py")) as initf:
         for line in initf:
-            m = version.match(line.strip())
-            if not m:
-                continue
-            return ".".join(m.groups()[0].split(", "))
+            if m := version.match(line.strip()):
+                return ".".join(m.groups()[0].split(", "))
 
 
 def get_requirements(filename):
-    return open('requirements/' + filename).read().splitlines()
+    return open(f'requirements/{filename}').read().splitlines()
 
 
 classes = """

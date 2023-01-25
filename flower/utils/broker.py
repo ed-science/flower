@@ -64,7 +64,7 @@ class RabbitMQ(BrokerBase):
 
     @gen.coroutine
     def queues(self, names):
-        url = urljoin(self.http_api, 'queues/' + self.vhost)
+        url = urljoin(self.http_api, f'queues/{self.vhost}')
         api_url = urlparse(self.http_api)
         username = unquote(api_url.username or '') or self.username
         password = unquote(api_url.password or '') or self.password
@@ -91,7 +91,7 @@ class RabbitMQ(BrokerBase):
     def validate_http_api(cls, http_api):
         url = urlparse(http_api)
         if url.scheme not in ('http', 'https'):
-            raise ValueError("Invalid http api schema: %s" % url.scheme)
+            raise ValueError(f"Invalid http api schema: {url.scheme}")
 
 
 class RedisBase(BrokerBase):
@@ -122,10 +122,12 @@ class RedisBase(BrokerBase):
         for name in names:
             priority_names = [self.broker_prefix + self._q_for_pri(
                 name, pri) for pri in self.priority_steps]
-            queue_stats.append({
-                'name': name,
-                'messages': sum([self.redis.llen(x) for x in priority_names])
-            })
+            queue_stats.append(
+                {
+                    'name': name,
+                    'messages': sum(self.redis.llen(x) for x in priority_names),
+                }
+            )
         raise gen.Return(queue_stats)
 
 
@@ -203,16 +205,16 @@ class RedisSentinel(RedisBase):
         # TODO: get all sentinel hosts from Celery App config and use them to initialize Sentinel
         sentinel = redis.sentinel.Sentinel(
             [(self.host, self.port)], **connection_kwargs)
-        redis_client = sentinel.master_for(self.master_name)
-        return redis_client
+        return sentinel.master_for(self.master_name)
 
 
 class RedisSocket(RedisBase):
 
     def __init__(self, broker_url, *args, **kwargs):
         super(RedisSocket, self).__init__(broker_url, *args, **kwargs)
-        self.redis = redis.Redis(unix_socket_path='/' + self.vhost,
-                                 password=self.password)
+        self.redis = redis.Redis(
+            unix_socket_path=f'/{self.vhost}', password=self.password
+        )
 
 
 class RedisSsl(Redis):

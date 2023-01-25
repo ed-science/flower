@@ -58,7 +58,7 @@ copyright = u'2016, Mher Movsisyan'
 # built documents.
 #
 # The short X.Y version.
-version = '.'.join(map(str, flower.VERSION[0:2]))
+version = '.'.join(map(str, flower.VERSION[:2]))
 # The full version, including alpha/beta/rc tags.
 release = flower.__version__.rstrip('-dev')
 

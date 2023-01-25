@@ -17,7 +17,7 @@ class TaskView(BaseHandler):
         task = get_task_by_id(self.application.events, task_id)
 
         if task is None:
-            raise web.HTTPError(404, "Unknown task '%s'" % task_id)
+            raise web.HTTPError(404, f"Unknown task '{task_id}'")
         task = self.format_task(task)
         self.render("task.html", task=task)
 
@@ -52,7 +52,7 @@ class TasksDataTable(BaseHandler):
         search = self.get_argument('search[value]', type=str)
 
         column = self.get_argument('order[0][column]', type=int)
-        sort_by = self.get_argument('columns[%s][data]' % column, type=str)
+        sort_by = self.get_argument(f'columns[{column}][data]', type=str)
         sort_order = self.get_argument('order[0][dir]', type=str) == 'desc'
 
         def key(item):
@@ -84,8 +84,7 @@ class TasksDataTable(BaseHandler):
         sort_keys = {'name': str, 'state': str, 'received': float, 'started': float, 'runtime': float}
         if sort_by in sort_keys:
             for _, task in tasks:
-                attr_value = getattr(task, sort_by, None)
-                if attr_value:
+                if attr_value := getattr(task, sort_by, None):
                     try:
                         setattr(task, sort_by, sort_keys[sort_by](attr_value))
                     except TypeError:
@@ -97,9 +96,7 @@ class TasksDataTable(BaseHandler):
 
     def format_task(self, args):
         uuid, task = args
-        custom_format_task = self.application.options.format_task
-
-        if custom_format_task:
+        if custom_format_task := self.application.options.format_task:
             try:
                 task = custom_format_task(copy.copy(task))
             except Exception:
@@ -115,7 +112,7 @@ class TasksView(BaseHandler):
 
         time = 'natural-time' if app.options.natural_time else 'time'
         if capp.conf.CELERY_TIMEZONE:
-            time += '-' + str(capp.conf.CELERY_TIMEZONE)
+            time += f'-{str(capp.conf.CELERY_TIMEZONE)}'
 
         self.render(
             "tasks.html",

@@ -31,7 +31,7 @@ class BaseHandler(tornado.web.RequestHandler):
         app_options = self.application.options
         functions = inspect.getmembers(template, inspect.isfunction)
         assert not set(map(lambda x: x[0], functions)) & set(kwargs.keys())
-        kwargs.update(functions)
+        kwargs |= functions
         kwargs.update(url_prefix=app_options.url_prefix)
         super(BaseHandler, self).render(*args, **kwargs)
 
@@ -42,10 +42,7 @@ class BaseHandler(tornado.web.RequestHandler):
                 message = kwargs['exc_info'][1].log_message
             self.render('404.html', message=message)
         elif status_code == 500:
-            error_trace = ""
-            for line in traceback.format_exception(*kwargs['exc_info']):
-                error_trace += line
-
+            error_trace = "".join(traceback.format_exception(*kwargs['exc_info']))
             self.render('error.html',
                         debug=self.application.options.debug,
                         status_code=status_code,
@@ -65,9 +62,7 @@ class BaseHandler(tornado.web.RequestHandler):
             self.finish()
 
     def get_current_user(self):
-        # Basic Auth
-        basic_auth = self.application.options.basic_auth
-        if basic_auth:
+        if basic_auth := self.application.options.basic_auth:
             auth_header = self.request.headers.get("Authorization", "")
             try:
                 basic, credentials = auth_header.split()
@@ -80,8 +75,7 @@ class BaseHandler(tornado.web.RequestHandler):
         # OAuth2
         if not self.application.options.auth:
             return True
-        user = self.get_secure_cookie('user')
-        if user:
+        if user := self.get_secure_cookie('user'):
             if not isinstance(user, str):
                 user = user.decode()
             if re.match(self.application.options.auth, user):
@@ -94,17 +88,13 @@ class BaseHandler(tornado.web.RequestHandler):
             arg = tornado.escape.xhtml_escape(arg)
         if type is not None:
             try:
-                if type is bool:
-                    arg = strtobool(str(arg))
-                else:
-                    arg = type(arg)
+                arg = strtobool(str(arg)) if type is bool else type(arg)
             except (ValueError, TypeError):
                 if arg is None and default is None:
                     return arg
                 raise tornado.web.HTTPError(
-                    400,
-                    "Invalid argument '%s' of type '%s'" % (
-                        arg, type.__name__))
+                    400, f"Invalid argument '{arg}' of type '{type.__name__}'"
+                )
         return arg
 
     @property
@@ -113,8 +103,7 @@ class BaseHandler(tornado.web.RequestHandler):
         return self.application.capp
 
     def format_task(self, task):
-        custom_format_task = self.application.options.format_task
-        if custom_format_task:
+        if custom_format_task := self.application.options.format_task:
             try:
                 task = custom_format_task(copy.copy(task))
             except:

@@ -77,7 +77,7 @@ def stringified_dict_contains_value(key, value, str_dict):
     except ValueError:
         # last value in dict
         comma_index = str_dict.index('}', key_index)
-    return str(value) == str_dict[key_index:comma_index].strip('"\'')
+    return value == str_dict[key_index:comma_index].strip('"\'')
 
 
 def preprocess_search_value(raw_value):
@@ -85,6 +85,4 @@ def preprocess_search_value(raw_value):
 
 
 def task_args_contains_search_args(task_args, search_args):
-    if not task_args:
-        return False
-    return all(a in task_args for a in search_args)
+    return all(a in task_args for a in search_args) if task_args else False

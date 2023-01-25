@@ -113,26 +113,29 @@ class TestConfOption(AsyncHTTPTestCase):
 
     def test_conf_abs(self):
         with tempfile.NamedTemporaryFile() as cf:
-            with self.mock_option('conf', cf.name), self.mock_option('debug', False):
+            with (self.mock_option('conf', cf.name), self.mock_option('debug', False)):
                 cf.write('debug=True\n'.encode('utf-8'))
                 cf.flush()
-                apply_options('flower', argv=['--conf=%s' % cf.name])
+                apply_options('flower', argv=[f'--conf={cf.name}'])
                 self.assertEqual(cf.name, options.conf)
                 self.assertTrue(options.debug)
 
     def test_conf_relative(self):
         with tempfile.NamedTemporaryFile(dir='.') as cf:
-            with self.mock_option('conf', cf.name), self.mock_option('debug', False):
+            with (self.mock_option('conf', cf.name), self.mock_option('debug', False)):
                 cf.write('debug=True\n'.encode('utf-8'))
                 cf.flush()
-                apply_options('flower', argv=['--conf=%s' % os.path.basename(cf.name)])
+                apply_options('flower', argv=[f'--conf={os.path.basename(cf.name)}'])
                 self.assertTrue(options.debug)
 
     @unittest.skipUnless(not sys.platform.startswith("win"), 'skip windows')
     def test_all_options_documented(self):
         def grep(patter, filename):
-            return int(subprocess.check_output(
-                'grep "%s" %s|wc -l' % (patter, filename), shell=True))
+            return int(
+                subprocess.check_output(
+                    f'grep "{patter}" {filename}|wc -l', shell=True
+                )
+            )
 
         defined = grep('^define(', 'flower/options.py') - 4
         documented = grep('^~~', 'docs/config.rst')

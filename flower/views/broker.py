@@ -22,23 +22,20 @@ class BrokerView(BaseHandler):
         if app.transport == 'amqp' and app.options.broker_api:
             http_api = app.options.broker_api
 
-        broker_use_ssl = None
-        if self.capp.conf.BROKER_USE_SSL:
-            broker_use_ssl = self.capp.conf.BROKER_USE_SSL
-
+        broker_use_ssl = self.capp.conf.BROKER_USE_SSL or None
         try:
             broker = Broker(app.capp.connection(connect_timeout=1.0).as_uri(include_password=True),
                             http_api=http_api, broker_options=broker_options, broker_use_ssl=broker_use_ssl)
         except NotImplementedError:
-            raise web.HTTPError(
-                404, "'%s' broker is not supported" % app.transport)
+            raise web.HTTPError(404, f"'{app.transport}' broker is not supported")
 
         queues = {}
         try:
             queue_names = self.get_active_queue_names()
             if not queue_names:
-                queue_names = set([self.capp.conf.CELERY_DEFAULT_QUEUE]) |\
-                        set([q.name for q in self.capp.conf.CELERY_QUEUES or [] if q.name])
+                queue_names = {self.capp.conf.CELERY_DEFAULT_QUEUE} | {
+                    q.name for q in self.capp.conf.CELERY_QUEUES or [] if q.name
+                }
 
             queues = yield broker.queues(sorted(queue_names))
         except Exception as e:
