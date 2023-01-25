@@ -29,9 +29,7 @@ def validate_auth_option(pattern):
         return False
     if '*' in pattern and '|' in pattern:
         return False
-    if '*' in pattern.rsplit('@', 1)[-1]:
-        return False
-    return True
+    return '*' not in pattern.rsplit('@', 1)[-1]
 
 
 class GoogleAuth2LoginHandler(BaseHandler, tornado.auth.GoogleOAuth2Mixin):
@@ -64,9 +62,10 @@ class GoogleAuth2LoginHandler(BaseHandler, tornado.auth.GoogleOAuth2Mixin):
         try:
             response = yield self.get_auth_http_client().fetch(
                 'https://www.googleapis.com/userinfo/v2/me',
-                headers={'Authorization': 'Bearer %s' % access_token})
+                headers={'Authorization': f'Bearer {access_token}'},
+            )
         except Exception as e:
-            raise tornado.web.HTTPError(403, 'Google auth failed: %s' % e)
+            raise tornado.web.HTTPError(403, f'Google auth failed: {e}')
 
         email = json.loads(response.body.decode('utf-8'))['email']
         if not authenticate(self.application.options.auth, email):
@@ -80,7 +79,7 @@ class GoogleAuth2LoginHandler(BaseHandler, tornado.auth.GoogleOAuth2Mixin):
 
         next_ = self.get_argument('next', self.application.options.url_prefix or '/')
         if self.application.options.url_prefix and next_[0] != '/':
-            next_ = '/' + next_
+            next_ = f'/{next_}'
 
         self.redirect(next_)
 
@@ -114,8 +113,7 @@ class GithubLoginHandler(BaseHandler, tornado.auth.OAuth2Mixin):
                      'Accept': 'application/json'}, body=body)
 
         if response.error:
-            raise tornado.auth.AuthError(
-                'OAuth authenticator error: %s' % str(response))
+            raise tornado.auth.AuthError(f'OAuth authenticator error: {str(response)}')
 
         raise tornado.gen.Return(json.loads(response.body.decode('utf-8')))
 
@@ -145,8 +143,11 @@ class GithubLoginHandler(BaseHandler, tornado.auth.OAuth2Mixin):
 
         response = yield self.get_auth_http_client().fetch(
             'https://api.github.com/user/emails',
-            headers={'Authorization': 'token ' + access_token,
-                     'User-agent': 'Tornado auth'})
+            headers={
+                'Authorization': f'token {access_token}',
+                'User-agent': 'Tornado auth',
+            },
+        )
 
         emails = [email['email'].lower() for email in json.loads(response.body.decode('utf-8'))
                   if email['verified'] and authenticate(self.application.options.auth, email['email'])]
@@ -162,7 +163,7 @@ class GithubLoginHandler(BaseHandler, tornado.auth.OAuth2Mixin):
 
         next_ = self.get_argument('next', self.application.options.url_prefix or '/')
         if self.application.options.url_prefix and next_[0] != '/':
-            next_ = '/' + next_
+            next_ = f'/{next_}'
         self.redirect(next_)
 
 
@@ -189,7 +190,7 @@ class GitLabLoginHandler(BaseHandler, tornado.auth.OAuth2Mixin):
             body=body
         )
         if response.error:
-            raise tornado.auth.AuthError('OAuth authenticator error: %s' % str(response))
+            raise tornado.auth.AuthError(f'OAuth authenticator error: {str(response)}')
         raise tornado.gen.Return(json.loads(response.body.decode('utf-8')))
 
     @tornado.gen.coroutine
@@ -222,11 +223,13 @@ class GitLabLoginHandler(BaseHandler, tornado.auth.OAuth2Mixin):
         try:
             response = yield self.get_auth_http_client().fetch(
                 'https://gitlab.com/api/v4/user',
-                headers={'Authorization': 'Bearer ' + access_token,
-                         'User-agent': 'Tornado auth'}
+                headers={
+                    'Authorization': f'Bearer {access_token}',
+                    'User-agent': 'Tornado auth',
+                },
             )
         except Exception as e:
-            raise tornado.web.HTTPError(403, 'GitLab auth failed: %s' % e)
+            raise tornado.web.HTTPError(403, f'GitLab auth failed: {e}')
 
         user_email = json.loads(response.body.decode('utf-8'))['email']
         email_allowed = authenticate(self.application.options.auth, user_email)
@@ -236,11 +239,11 @@ class GitLabLoginHandler(BaseHandler, tornado.auth.OAuth2Mixin):
         if allowed_groups:
             min_access_level = os.environ.get('FLOWER_GITLAB_MIN_ACCESS_LEVEL', '20')
             response = yield self.get_auth_http_client().fetch(
-                'https://gitlab.com/api/v4/groups?min_access_level=%s' % (min_access_level,),
+                f'https://gitlab.com/api/v4/groups?min_access_level={min_access_level}',
                 headers={
-                    'Authorization': 'Bearer ' + access_token,
-                    'User-agent': 'Tornado auth'
-                }
+                    'Authorization': f'Bearer {access_token}',
+                    'User-agent': 'Tornado auth',
+                },
             )
             matching_groups = [
                 group['id']
@@ -248,14 +251,14 @@ class GitLabLoginHandler(BaseHandler, tornado.auth.OAuth2Mixin):
                 if group['full_path'] in allowed_groups
             ]
 
-        if not email_allowed or (allowed_groups and len(matching_groups) == 0):
+        if not email_allowed or allowed_groups and not matching_groups:
             message = 'Access denied. Please use another account or contact your admin.'
             raise tornado.web.HTTPError(403, message)
 
         self.set_secure_cookie('user', str(user_email))
         next_ = self.get_argument('next', self.application.options.url_prefix or '/')
         if self.application.options.url_prefix and next_[0] != '/':
-            next_ = '/' + next_
+            next_ = f'/{next_}'
         self.redirect(next_)
 
 
@@ -269,15 +272,15 @@ class OktaLoginHandler(BaseHandler, tornado.auth.OAuth2Mixin):
 
     @property
     def _OAUTH_AUTHORIZE_URL(self):
-        return "{}/v1/authorize".format(self.base_url)
+        return f"{self.base_url}/v1/authorize"
 
     @property
     def _OAUTH_ACCESS_TOKEN_URL(self):
-        return "{}/v1/token".format(self.base_url)
+        return f"{self.base_url}/v1/token"
 
     @property
     def _OAUTH_USER_INFO_URL(self):
-        return "{}/v1/userinfo".format(self.base_url)
+        return f"{self.base_url}/v1/userinfo"
 
     @tornado.gen.coroutine
     def get_access_token(self, redirect_uri, code):
@@ -296,8 +299,7 @@ class OktaLoginHandler(BaseHandler, tornado.auth.OAuth2Mixin):
                      'Accept': 'application/json'}, body=body)
 
         if response.error:
-            raise tornado.auth.AuthError(
-                'OAuth authenticator error: %s' % str(response))
+            raise tornado.auth.AuthError(f'OAuth authenticator error: {str(response)}')
 
         raise tornado.gen.Return(json.loads(response.body.decode('utf-8')))
 
@@ -336,8 +338,11 @@ class OktaLoginHandler(BaseHandler, tornado.auth.OAuth2Mixin):
 
         response = yield self.get_auth_http_client().fetch(
             self._OAUTH_USER_INFO_URL,
-            headers={'Authorization': 'Bearer ' + access_token,
-                     'User-agent': 'Tornado auth'})
+            headers={
+                'Authorization': f'Bearer {access_token}',
+                'User-agent': 'Tornado auth',
+            },
+        )
 
         decoded_body = json.loads(response.body.decode('utf-8'))
         email = (decoded_body.get('email') or '').strip()
@@ -358,5 +363,5 @@ class OktaLoginHandler(BaseHandler, tornado.auth.OAuth2Mixin):
 
         next_ = self.get_argument('next', self.application.options.url_prefix or '/')
         if self.application.options.url_prefix and next_[0] != '/':
-            next_ = '/' + next_
+            next_ = f'/{next_}'
         self.redirect(next_)

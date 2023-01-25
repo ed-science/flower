@@ -154,11 +154,7 @@ def is_flower_envvar(name):
 
 def print_banner(app, ssl):
     if not options.unix_socket:
-        if options.url_prefix:
-            prefix_str = f'/{options.url_prefix}/'
-        else:
-            prefix_str = ''
-
+        prefix_str = f'/{options.url_prefix}/' if options.url_prefix else ''
         logger.info(
             "Visit me at http%s://%s:%s%s", 's' if ssl else '',
             options.address or 'localhost', options.port,

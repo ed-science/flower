@@ -16,14 +16,14 @@ class HtmlTableParser(HTMLParser):
         if tag == 'table':
             self.inTable = True
         if self.inTable:
-            self.table += '<%s' % tag
+            self.table += f'<{tag}'
             for attr in attrs:
                 self.table += ' %s="%s"' % attr
             self.table += '>'
 
     def handle_endtag(self, tag):
         if self.inTable:
-            self.table += '</%s>' % tag
+            self.table += f'</{tag}>'
             if tag == 'table':
                 self.inTable = False
 

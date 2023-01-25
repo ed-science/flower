@@ -19,10 +19,12 @@ class Inspector(object):
         self.workers = collections.defaultdict(dict)
 
     def inspect(self, workername=None):
-        feutures = []
-        for method in self.methods:
-            feutures.append(self.io_loop.run_in_executor(None, partial(self._inspect, method, workername)))
-        return feutures
+        return [
+            self.io_loop.run_in_executor(
+                None, partial(self._inspect, method, workername)
+            )
+            for method in self.methods
+        ]
 
     def _on_update(self, workername, method, response):
         info = self.workers[workername]

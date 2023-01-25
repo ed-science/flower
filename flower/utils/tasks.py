@@ -43,9 +43,8 @@ def iter_tasks(events, limit=None, offset=0, type=None, worker=None, state=None,
         if i >= offset:
             yield uuid, task
         i += 1
-        if limit != None:
-            if i == limit + offset:
-                break
+        if limit != None and i == limit + offset:
+            break
 
 
 sort_keys = {'name': str, 'state': str, 'received': float, 'started': float}
@@ -57,22 +56,21 @@ def sort_tasks(tasks, sort_by):
     if sort_by.startswith('-'):
         sort_by = sort_by.lstrip('-')
         reverse = True
-    for task in sorted(
-            tasks,
-            key=lambda x: getattr(x[1], sort_by) or sort_keys[sort_by](),
-            reverse=reverse):
-        yield task
+    yield from sorted(
+        tasks,
+        key=lambda x: getattr(x[1], sort_by) or sort_keys[sort_by](),
+        reverse=reverse,
+    )
 
 
 def get_task_by_id(events, task_id):
-    if hasattr(Task, '_fields'):  # Old version
+    if hasattr(Task, '_fields'):
         return events.state.tasks.get(task_id)
-    else:
-        _fields = Task._defaults.keys()
-        task = events.state.tasks.get(task_id)
-        if task is not None:
-            task._fields = _fields
-        return task
+    _fields = Task._defaults.keys()
+    task = events.state.tasks.get(task_id)
+    if task is not None:
+        task._fields = _fields
+    return task
 
 
 def as_dict(task):

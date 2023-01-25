@@ -47,28 +47,25 @@ def humanize(obj, type=None, length=None):
         if all(isinstance(x, (int, float, str)) for x in obj):
             obj = ', '.join(map(str, obj))
     if length is not None and len(obj) > length:
-        obj = obj[:length - 4] + ' ...'
+        obj = f'{obj[:length - 4]} ...'
     return obj
 
 
 def sort_url(name, key, sort_by, params=None, class_name='sort'):
     new_params = {}
     extra_class = ''
-    title = 'Order by %s DESC' % name
+    title = f'Order by {name} DESC'
     if params:
-        new_params.update(params)
+        new_params |= params
 
     if sort_by == key:
         extra_class = 'asc'
-    if sort_by == '-' + key:
+    if sort_by == f'-{key}':
         extra_class = 'desc'
-        title = 'Order by %s ASC' % name
+        title = f'Order by {name} ASC'
     if not sort_by or sort_by == key or sort_by.lstrip('-') != key:
-        new_params.update({'sort': '-' + key})
+        new_params['sort'] = f'-{key}'
     else:
-        new_params.update({'sort': key})
+        new_params['sort'] = key
 
-    return '<a class="%s %s" href="?%s" title="%s">%s</a>' % (
-        class_name, extra_class, urlencode(new_params),
-        title, name
-    )
+    return f'<a class="{class_name} {extra_class}" href="?{urlencode(new_params)}" title="{title}">{name}</a>'

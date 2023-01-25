@@ -17,12 +17,7 @@ def bugreport(app=None):
 
         app = app or celery.Celery()
 
-        return 'flower   -> flower:%s tornado:%s humanize:%s%s' % (
-            __version__,
-            tornado.version,
-            getattr(humanize, '__version__', None) or getattr(humanize, 'VERSION'),
-            app.bugreport()
-        )
+        return f"flower   -> flower:{__version__} tornado:{tornado.version} humanize:{getattr(humanize, '__version__', None) or getattr(humanize, 'VERSION')}{app.bugreport()}"
     except (ImportError, AttributeError) as e:
         return f"Error when generating bug report: {e}. Have you installed correct versions of Flower's dependencies?"
 

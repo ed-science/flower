@@ -33,10 +33,10 @@ class DashboardView(BaseHandler):
                 continue
             worker = events.workers[name]
             info = dict(values)
-            info.update(self._as_dict(worker))
+            info |= self._as_dict(worker)
             info.update(status=worker.alive)
             workers[name] = info
-        
+
         if options.purge_offline_workers is not None:
             timestamp = int(time.time())
             offline_workers = []
@@ -63,7 +63,7 @@ class DashboardView(BaseHandler):
     @classmethod
     def _as_dict(cls, worker):
         if hasattr(worker, '_fields'):
-            return dict((k, worker.__getattribute__(k)) for k in worker._fields)
+            return {k: worker.__getattribute__(k) for k in worker._fields}
         else:
             return cls._info(worker)
 
